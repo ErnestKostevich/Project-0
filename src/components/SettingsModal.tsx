@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { RECOMMENDED_MODELS } from "../lib/llm";
+import { PROVIDERS, type Provider } from "../lib/llm";
 import { PERSONALITY_MODES, type PersonalityMode } from "../lib/personality";
 import { checkoutUrl } from "../lib/config";
 import type { Settings } from "../hooks/useSettings";
@@ -25,13 +25,27 @@ interface Props {
 
 export function SettingsModal({ open, onClose, settings, onChange, tts, onShowPomodoroInfo }: Props) {
   const [revealKey, setRevealKey] = useState(false);
+  const providerCfg = PROVIDERS[settings.provider];
+  const currentKey =
+    settings.provider === "mistral" ? settings.mistralKey : settings.openRouterKey;
+
+  const setProviderKey = (value: string) => {
+    if (settings.provider === "mistral") onChange({ mistralKey: value });
+    else onChange({ openRouterKey: value });
+  };
+
+  const switchProvider = (newProvider: Provider) => {
+    // When switching providers, also reset model to that provider's default
+    // (the old model id is likely invalid for the new endpoint).
+    const newCfg = PROVIDERS[newProvider];
+    onChange({ provider: newProvider, model: newCfg.defaultModel });
+  };
 
   const handleUpgrade = async () => {
     const url = checkoutUrl("pro");
     try {
       await openUrl(url);
     } catch {
-      // Fallback: best effort if Tauri shell plugin not loaded.
       window.open(url, "_blank");
     }
   };
@@ -85,12 +99,28 @@ export function SettingsModal({ open, onClose, settings, onChange, tts, onShowPo
           />
         </label>
 
-        {/* ============ AI ============ */}
+        {/* ============ Provider ============ */}
+        <label className="settings-row">
+          <span className="settings-label">AI Provider</span>
+          <select
+            className="settings-input"
+            value={settings.provider}
+            onChange={(e) => switchProvider(e.target.value as Provider)}
+          >
+            {Object.values(PROVIDERS).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {/* ============ API key for current provider ============ */}
         <label className="settings-row">
           <span className="settings-label">
-            OpenRouter API key{" "}
+            {settings.provider === "mistral" ? "Mistral" : "OpenRouter"} API key{" "}
             <a
-              href="https://openrouter.ai/keys"
+              href={providerCfg.keyUrl}
               target="_blank"
               rel="noreferrer"
               className="settings-link"
@@ -102,9 +132,9 @@ export function SettingsModal({ open, onClose, settings, onChange, tts, onShowPo
             <input
               className="settings-input"
               type={revealKey ? "text" : "password"}
-              value={settings.openRouterKey}
-              onChange={(e) => onChange({ openRouterKey: e.target.value })}
-              placeholder="sk-or-v1-…"
+              value={currentKey}
+              onChange={(e) => setProviderKey(e.target.value)}
+              placeholder={providerCfg.keyHint}
               spellCheck={false}
               autoCorrect="off"
               autoCapitalize="off"
@@ -128,14 +158,16 @@ export function SettingsModal({ open, onClose, settings, onChange, tts, onShowPo
             value={settings.model}
             onChange={(e) => onChange({ model: e.target.value })}
           >
-            {RECOMMENDED_MODELS.map((m) => (
+            {providerCfg.models.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.label}
+                {m.note ? ` — ${m.note}` : ""}
               </option>
             ))}
           </select>
         </label>
 
+        {/* ============ Personality ============ */}
         <label className="settings-row">
           <span className="settings-label">Personality</span>
           <select
@@ -184,7 +216,7 @@ export function SettingsModal({ open, onClose, settings, onChange, tts, onShowPo
           </label>
         ) : null}
 
-        {/* ============ License (paste after purchase) ============ */}
+        {/* ============ License ============ */}
         <label className="settings-row">
           <span className="settings-label">License key (Pro)</span>
           <input
@@ -207,7 +239,7 @@ export function SettingsModal({ open, onClose, settings, onChange, tts, onShowPo
         ) : null}
 
         <div className="settings-note">
-          API key stored locally on this device only.
+          API keys stored locally on this device only.
           <br />
           Drop your own <code>.vrm</code> at <code>public/vrm/character.vrm</code> to swap the model.
         </div>

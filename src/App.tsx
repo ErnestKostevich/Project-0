@@ -17,7 +17,7 @@ import {
   IconSettings,
   IconTomato,
 } from "./components/icons/Icons";
-import { useSettings } from "./hooks/useSettings";
+import { useSettings, activeKey } from "./hooks/useSettings";
 import { useChat } from "./hooks/useChat";
 import { usePomodoro, type PomodoroPhase } from "./hooks/usePomodoro";
 import { useTTS } from "./hooks/useTTS";
@@ -79,7 +79,8 @@ function App() {
   );
 
   const chat = useChat({
-    apiKey: settings.openRouterKey,
+    provider: settings.provider,
+    apiKey: activeKey(settings),
     model: settings.model,
     buildContext,
     onAssistantTurn,

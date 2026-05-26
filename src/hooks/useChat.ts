@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { streamChat, type ChatMessage } from "../lib/llm";
+import { streamChat, type ChatMessage, type Provider } from "../lib/llm";
 import { buildSystemPrompt, type PersonalityContext } from "../lib/personality";
 
 export interface ChatTurn {
@@ -11,6 +11,7 @@ export interface ChatTurn {
 }
 
 export interface UseChatOpts {
+  provider: Provider;
   apiKey: string;
   model: string;
   /** Snapshot of personality context at send time. Called once per send. */
@@ -20,14 +21,13 @@ export interface UseChatOpts {
 }
 
 function genId(): string {
-  // crypto.randomUUID is available in modern browsers and Tauri's WebView.
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
   }
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-export function useChat({ apiKey, model, buildContext, onAssistantTurn }: UseChatOpts) {
+export function useChat({ provider, apiKey, model, buildContext, onAssistantTurn }: UseChatOpts) {
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [busy, setBusy] = useState(false);
   const controllerRef = useRef<AbortController | null>(null);
@@ -39,14 +39,18 @@ export function useChat({ apiKey, model, buildContext, onAssistantTurn }: UseCha
       if (busy) return;
 
       if (!apiKey) {
+        const providerLabel = provider === "mistral" ? "Mistral" : "OpenRouter";
+        const url =
+          provider === "mistral"
+            ? "console.mistral.ai/api-keys"
+            : "openrouter.ai/keys";
         setTurns((t) => [
           ...t,
           { id: genId(), role: "user", content: trimmed },
           {
             id: genId(),
             role: "assistant",
-            content:
-              "I need an OpenRouter API key first. Click the ⚙ button to open settings and paste your key — you can grab one at openrouter.ai/keys ✨",
+            content: `I need a ${providerLabel} API key first. Open ⚙ Settings and paste it — grab one at ${url} ✨`,
           },
         ]);
         return;
@@ -64,7 +68,6 @@ export function useChat({ apiKey, model, buildContext, onAssistantTurn }: UseCha
       const controller = new AbortController();
       controllerRef.current = controller;
 
-      // Use the latest turns + the new user turn as history.
       const history: ChatMessage[] = [...turns, userTurn].map((t) => ({
         role: t.role,
         content: t.content,
@@ -72,6 +75,7 @@ export function useChat({ apiKey, model, buildContext, onAssistantTurn }: UseCha
 
       let buffer = "";
       await streamChat({
+        provider,
         apiKey,
         model,
         messages: history,
@@ -100,7 +104,7 @@ export function useChat({ apiKey, model, buildContext, onAssistantTurn }: UseCha
         signal: controller.signal,
       });
     },
-    [apiKey, model, busy, turns, buildContext, onAssistantTurn],
+    [provider, apiKey, model, busy, turns, buildContext, onAssistantTurn],
   );
 
   const cancel = useCallback(() => {

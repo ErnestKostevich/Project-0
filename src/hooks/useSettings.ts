@@ -1,27 +1,33 @@
 import { useCallback, useState } from "react";
+import type { PersonalityMode } from "../lib/personality";
+import type { Provider } from "../lib/llm";
 
 /**
  * Lightweight settings store backed by localStorage.
- * We'll migrate to Tauri's secure store (stronghold) for the API key once Pro
+ * We'll migrate to Tauri's secure store (stronghold) for API keys once Pro
  * tier ships — localStorage is fine for indie MVP.
  */
 
-import type { PersonalityMode } from "../lib/personality";
-
 export interface Settings {
+  /** Which LLM provider currently active. */
+  provider: Provider;
+  /** Per-provider API keys (only the active one is used at any time). */
   openRouterKey: string;
+  mistralKey: string;
+  /** Model id valid for the active provider. */
   model: string;
   userName: string;
   userGoals: string;
   personality: PersonalityMode;
-  /** Set true after the user dismisses the Pomodoro intro — don't show it again. */
   pomodoroIntroShown: boolean;
   /** License key from the Pro purchase flow (NOWPayments → webhook → email). */
   licenseKey: string;
 }
 
 const DEFAULTS: Settings = {
+  provider: "openrouter",
   openRouterKey: "",
+  mistralKey: "",
   model: "anthropic/claude-3.5-sonnet",
   userName: "",
   userGoals: "",
@@ -59,4 +65,10 @@ export function useSettings() {
   }, []);
 
   return { settings, setSettings };
+}
+
+/** Active API key for the currently selected provider. */
+export function activeKey(s: Settings): string {
+  if (s.provider === "mistral") return s.mistralKey;
+  return s.openRouterKey;
 }

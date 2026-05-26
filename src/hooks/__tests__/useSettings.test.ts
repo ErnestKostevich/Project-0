@@ -9,7 +9,9 @@ describe("useSettings", () => {
 
   it("returns sensible defaults when no settings stored", () => {
     const { result } = renderHook(() => useSettings());
+    expect(result.current.settings.provider).toBe("openrouter");
     expect(result.current.settings.openRouterKey).toBe("");
+    expect(result.current.settings.mistralKey).toBe("");
     expect(result.current.settings.model).toBe("anthropic/claude-3.5-sonnet");
     expect(result.current.settings.userName).toBe("");
     expect(result.current.settings.userGoals).toBe("");
