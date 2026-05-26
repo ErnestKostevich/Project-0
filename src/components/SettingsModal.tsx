@@ -189,7 +189,17 @@ export function SettingsModal({ open, onClose, settings, onChange, tts, onShowPo
         {/* ============ Voice ============ */}
         {tts?.supported ? (
           <label className="settings-row">
-            <span className="settings-label">Voice</span>
+            <span className="settings-label">
+              Voice
+              <label className="voice-toggle">
+                <input
+                  type="checkbox"
+                  checked={settings.showAllVoices}
+                  onChange={(e) => onChange({ showAllVoices: e.target.checked })}
+                />
+                <span>show all (incl. male / non-English)</span>
+              </label>
+            </span>
             <div className="settings-key-row">
               <select
                 className="settings-input"

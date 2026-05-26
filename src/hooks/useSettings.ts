@@ -20,6 +20,8 @@ export interface Settings {
   userGoals: string;
   personality: PersonalityMode;
   pomodoroIntroShown: boolean;
+  /** Show all OS voices (including male) in the voice picker. Default false = female-only. */
+  showAllVoices: boolean;
   /** License key from the Pro purchase flow (NOWPayments → webhook → email). */
   licenseKey: string;
 }
@@ -33,6 +35,7 @@ const DEFAULTS: Settings = {
   userGoals: "",
   personality: "friendly",
   pomodoroIntroShown: false,
+  showAllVoices: false,
   licenseKey: "",
 };
 

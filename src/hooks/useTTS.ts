@@ -15,6 +15,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 interface UseTTSOpts {
   onAmplitude?: (level: number) => void;
   enabled?: boolean;
+  /** Show all OS voices (incl. male). Default false = female-only filter. */
+  showAllVoices?: boolean;
 }
 
 interface UseTTSReturn {
@@ -90,7 +92,7 @@ function filterFemale(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice[] {
   });
 }
 
-export function useTTS({ onAmplitude, enabled = true }: UseTTSOpts = {}): UseTTSReturn {
+export function useTTS({ onAmplitude, enabled = true, showAllVoices = false }: UseTTSOpts = {}): UseTTSReturn {
   const supported =
     typeof window !== "undefined" && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -105,9 +107,19 @@ export function useTTS({ onAmplitude, enabled = true }: UseTTSOpts = {}): UseTTS
     if (!supported) return;
     const load = () => {
       const all = window.speechSynthesis.getVoices();
-      const female = filterFemale(all);
-      // Show female voices only in the settings dropdown.
-      setVoices(female.length ? female : all);
+      if (showAllVoices) {
+        // Sort with en-* first, then others.
+        const sorted = [...all].sort((a, b) => {
+          const ae = a.lang.toLowerCase().startsWith("en") ? 0 : 1;
+          const be = b.lang.toLowerCase().startsWith("en") ? 0 : 1;
+          if (ae !== be) return ae - be;
+          return a.name.localeCompare(b.name);
+        });
+        setVoices(sorted);
+      } else {
+        const female = filterFemale(all);
+        setVoices(female.length ? female : all);
+      }
       setVoiceId((cur) => {
         if (cur) return cur;
         const best = pickBestVoice(all);
@@ -119,7 +131,7 @@ export function useTTS({ onAmplitude, enabled = true }: UseTTSOpts = {}): UseTTS
     return () => {
       window.speechSynthesis.onvoiceschanged = null;
     };
-  }, [supported]);
+  }, [supported, showAllVoices]);
 
   const stopAmpInterval = useCallback(() => {
     if (ampIntervalRef.current != null) {

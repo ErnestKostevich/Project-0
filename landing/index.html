@@ -367,7 +367,7 @@
         };
 
         loader.load(
-          "/sample.vrm",
+          "/sample.vrm?v=2",
           (gltf) => {
             const m = gltf.userData.vrm;
             VRMUtils.removeUnnecessaryVertices(gltf.scene);

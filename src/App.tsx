@@ -45,7 +45,11 @@ function App() {
     }
   }, [settings.pomodoroIntroShown]);
 
-  const tts = useTTS({ onAmplitude: setMouthAmp, enabled: true });
+  const tts = useTTS({
+    onAmplitude: setMouthAmp,
+    enabled: true,
+    showAllVoices: settings.showAllVoices,
+  });
   const activeWin = useActiveWindow(8000);
   const distractionNudgedRef = useRef<number>(0);
 

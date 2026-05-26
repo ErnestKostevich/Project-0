@@ -15,6 +15,7 @@ describe("useSettings", () => {
     expect(result.current.settings.model).toBe("anthropic/claude-3.5-sonnet");
     expect(result.current.settings.userName).toBe("");
     expect(result.current.settings.userGoals).toBe("");
+    expect(result.current.settings.showAllVoices).toBe(false);
   });
 
   it("persists changes to localStorage", () => {
