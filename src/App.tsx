@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Character } from "./components/Character";
 import { SpeechBubble } from "./components/SpeechBubble";
@@ -21,6 +21,7 @@ import { useSettings, activeKey } from "./hooks/useSettings";
 import { useChat } from "./hooks/useChat";
 import { usePomodoro, type PomodoroPhase } from "./hooks/usePomodoro";
 import { useTTS } from "./hooks/useTTS";
+import { useActiveWindow } from "./hooks/useActiveWindow";
 import "./App.css";
 
 function App() {
@@ -45,6 +46,8 @@ function App() {
   }, [settings.pomodoroIntroShown]);
 
   const tts = useTTS({ onAmplitude: setMouthAmp, enabled: true });
+  const activeWin = useActiveWindow(8000);
+  const distractionNudgedRef = useRef<number>(0);
 
   const handlePhaseChange = useCallback(
     (phase: PomodoroPhase, cyclesDone: number) => {
@@ -66,8 +69,21 @@ function App() {
       pomodoroRemaining: pomodoro.remaining,
       characterName: "Lumi",
       mode: settings.personality,
+      activeApp: activeWin.window?.app_name,
+      activeWindowTitle: activeWin.window?.title,
+      appCategory: activeWin.category,
+      appStreakMinutes: Math.floor(activeWin.categoryStreakMs / 60_000),
     }),
-    [settings.userName, settings.userGoals, pomodoro.phase, pomodoro.remaining, settings.personality],
+    [
+      settings.userName,
+      settings.userGoals,
+      pomodoro.phase,
+      pomodoro.remaining,
+      settings.personality,
+      activeWin.window,
+      activeWin.category,
+      activeWin.categoryStreakMs,
+    ],
   );
 
   const onAssistantTurn = useCallback(
@@ -97,6 +113,23 @@ function App() {
   useEffect(() => {
     if (settingsOpen) tts.stop();
   }, [settingsOpen, tts]);
+
+  // Spontaneous nudge: if user has been on distracting app 5+ min and we
+  // haven't nudged in the last 4 min, Lumi calls them out.
+  useEffect(() => {
+    if (activeWin.category !== "distracting") return;
+    if (activeWin.categoryStreakMs < 5 * 60_000) return;
+    const now = Date.now();
+    if (now - distractionNudgedRef.current < 4 * 60_000) return;
+    distractionNudgedRef.current = now;
+    const nudge = distractionNudge(
+      settings.personality,
+      activeWin.window?.app_name ?? "that app",
+      Math.floor(activeWin.categoryStreakMs / 60_000),
+    );
+    setLastUtterance({ text: nudge, streaming: false });
+    tts.speak(nudge);
+  }, [activeWin.category, activeWin.categoryStreakMs, activeWin.window, settings.personality, tts]);
 
   const mood: "idle" | "focus" | "break" =
     pomodoro.phase === "working" ? "focus" : pomodoro.phase === "break" ? "break" : "idle";
@@ -231,6 +264,30 @@ function App() {
       />
     </div>
   );
+}
+
+function distractionNudge(mode: string, app: string, minutes: number): string {
+  const a = app.replace(/\.exe$/i, "");
+  switch (mode) {
+    case "sassy":
+      return [
+        `${a} for ${minutes} minutes. Cool, cool. Back to work?`,
+        `Oh look, ${a} again. Productive.`,
+        `${minutes} minutes on ${a}. The crown is heavy.`,
+      ][Math.floor(Math.random() * 3)];
+    case "cheerleader":
+      return [
+        `Hey hey! Quick break's been ${minutes} min — let's go back, you got this! 💪`,
+        `${a} time over? Round two is calling! ✨`,
+      ][Math.floor(Math.random() * 2)];
+    case "formal":
+      return `You have been on ${a} for ${minutes} minutes. Would you like to resume work?`;
+    default:
+      return [
+        `Hey — ${a} for ${minutes} min already. Maybe time to refocus? 🌸`,
+        `${minutes} minutes of ${a}. Wanna start a Pomodoro?`,
+      ][Math.floor(Math.random() * 2)];
+  }
 }
 
 function clickReactionsFor(mode: string): string[] {

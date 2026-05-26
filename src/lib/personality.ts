@@ -27,6 +27,13 @@ export interface PersonalityContext {
   pomodoroRemaining?: number; // seconds
   characterName?: string;
   mode?: PersonalityMode;
+  /** Active foreground app, if Lumi can see it. */
+  activeApp?: string;
+  activeWindowTitle?: string;
+  /** Classification: productive / distracting / communication / neutral. */
+  appCategory?: "productive" | "distracting" | "communication" | "neutral";
+  /** Minutes the user has been on the current category continuously. */
+  appStreakMinutes?: number;
 }
 
 const TONE_RULES: Record<PersonalityMode, string> = {
@@ -95,6 +102,20 @@ export function buildSystemPrompt(ctx: PersonalityContext): string {
   } else if (ctx.pomodoroPhase === "break") {
     const mins = Math.ceil((ctx.pomodoroRemaining ?? 0) / 60);
     lines.push(`- Currently on a Pomodoro BREAK — ${mins} min remaining. Encourage them to actually rest (stretch, water, look away from screen).`);
+  }
+
+  if (ctx.activeApp) {
+    lines.push(`- Currently focused app: ${ctx.activeApp}${ctx.activeWindowTitle ? ` — "${ctx.activeWindowTitle}"` : ""}`);
+    if (ctx.appCategory === "distracting") {
+      const m = ctx.appStreakMinutes ?? 0;
+      if (m >= 5) {
+        lines.push(`- ⚠ They've been on this distracting app for ~${m} min. Light nudge to refocus is appropriate.`);
+      } else {
+        lines.push(`- The current app is a known time-sink. Don't nag yet, but be aware.`);
+      }
+    } else if (ctx.appCategory === "productive") {
+      lines.push(`- They're on a productive tool — your job is to NOT interrupt unless they ask.`);
+    }
   }
 
   return lines.join("\n");
