@@ -75,7 +75,7 @@ export function VRMCharacter({ size = 280, mouthAmplitude = 0, onReady, onError 
     scene.add(fill);
     scene.add(new THREE.AmbientLight(0xffffff, 0.55));
 
-    const camera = new THREE.PerspectiveCamera(28, 1, 0.05, 20);
+    const camera = new THREE.PerspectiveCamera(34, 1, 0.05, 20);
     camera.position.set(0, 1.4, 0.8);
     camera.lookAt(0, 1.4, 0);
 
@@ -117,28 +117,93 @@ export function VRMCharacter({ size = 280, mouthAmplitude = 0, onReady, onError 
             obj.frustumCulled = false;
           });
 
-          // VRM 0.x models face -Z by default; VRM 1.0 faces +Z. This util
-          // does nothing on 1.0 and rotates 180° on 0.x — works for both.
+          // Step 1: rotate VRM 0.x (no-op on 1.0).
           VRMUtils.rotateVRM0(vrm);
+          vrm.scene.updateMatrixWorld(true);
+
+          // Step 2: detect actual facing using head bone forward vector.
+          // Some VRoid exports (incl. our bundled Shino) are marked 1.0 but
+          // still face -Z. We sample the head's world-space forward and flip
+          // the whole scene if it points backwards.
+          const head = vrm.humanoid?.getRawBoneNode("head");
+          const charForward = new THREE.Vector3(0, 0, 1);
+          if (head) {
+            const headQuat = head.getWorldQuaternion(new THREE.Quaternion());
+            charForward.applyQuaternion(headQuat).normalize();
+            if (charForward.z < 0) {
+              vrm.scene.rotation.y += Math.PI;
+              vrm.scene.updateMatrixWorld(true);
+              charForward.negate();
+            }
+          }
 
           scene.add(vrm.scene);
           stateRef.current.vrm = vrm;
 
-          // Camera framing: place the camera in front of the character (the
-          // direction the character now faces after rotateVRM0). We compute
-          // forward by sampling a point in front of the head bone in local
-          // space, then transforming to world.
-          const head = vrm.humanoid?.getRawBoneNode("head");
+          // Step 3: compute upper-body frame (head + chest) using bones.
+          const chest =
+            vrm.humanoid?.getRawBoneNode("chest") ||
+            vrm.humanoid?.getRawBoneNode("upperChest") ||
+            vrm.humanoid?.getRawBoneNode("spine");
+
+          // Defaults — overridden if we have bones.
+          let frameTopY = 1.6;
+          let frameBottomY = 1.2;
+          let frameCenterX = 0;
+          let frameCenterY = 1.4;
+          let frameCenterZ = 0;
+          let frameWidth = 0.4;
+
+          // Use the whole-model bbox to gauge head/hair width (for horizontal fit).
+          const fullBox = new THREE.Box3().setFromObject(vrm.scene);
+          const fullSize = fullBox.getSize(new THREE.Vector3());
+          frameWidth = fullSize.x;
+
           if (head) {
-            const hp = new THREE.Vector3();
-            head.getWorldPosition(hp);
-            // Character now faces +Z. Camera goes +Z in front, slightly above
-            // head height, looking at the chest level so head + shoulders fit.
-            camera.position.set(hp.x, hp.y + 0.02, hp.z + 0.42);
-            camera.lookAt(hp.x, hp.y - 0.05, hp.z);
-            // Look target positioned far in front so the eyes track naturally.
-            lookTarget.position.set(hp.x, hp.y, hp.z + 1);
+            const hp = head.getWorldPosition(new THREE.Vector3());
+            frameCenterX = hp.x;
+            frameCenterZ = hp.z;
+            frameTopY = hp.y + 0.22; // headroom above hair
+            if (chest) {
+              const cp = chest.getWorldPosition(new THREE.Vector3());
+              frameBottomY = cp.y - 0.1; // include shoulders + a hair below
+            } else {
+              frameBottomY = hp.y - 0.4;
+            }
+          } else {
+            const center = fullBox.getCenter(new THREE.Vector3());
+            frameCenterX = center.x;
+            frameCenterZ = center.z;
+            frameTopY = fullBox.max.y + 0.05;
+            frameBottomY = center.y + fullSize.y * 0.05;
           }
+
+          const frameHeight = Math.max(0.001, frameTopY - frameBottomY);
+          frameCenterY = (frameTopY + frameBottomY) / 2;
+
+          // Step 4: compute camera distance so BOTH height and width fit.
+          // 30% vertical padding, 20% horizontal — comfortably uncropped.
+          const fovRad = (camera.fov * Math.PI) / 180;
+          const distanceH = (frameHeight / 2 / Math.tan(fovRad / 2)) * 1.3;
+          const distanceW = (frameWidth / 2 / Math.tan(fovRad / 2)) * 1.2;
+          const distance = Math.max(distanceH, distanceW);
+
+          // Step 5: place camera along the character's actual forward vector
+          // (works whether character was originally facing +Z or -Z).
+          camera.position.set(
+            frameCenterX + charForward.x * distance,
+            frameCenterY,
+            frameCenterZ + charForward.z * distance,
+          );
+          camera.lookAt(frameCenterX, frameCenterY, frameCenterZ);
+
+          // Eye-tracking target sits 1m in front of the character along the
+          // same forward direction, slightly above eye level for natural feel.
+          lookTarget.position.set(
+            frameCenterX + charForward.x,
+            frameCenterY + 0.1,
+            frameCenterZ + charForward.z,
+          );
 
           // Wire VRM look-at to our movable target.
           if (vrm.lookAt) {
