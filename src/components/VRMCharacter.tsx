@@ -232,12 +232,13 @@ export function VRMCharacter({
             const hp = head.getWorldPosition(new THREE.Vector3());
             frameCenterX = hp.x;
             frameCenterZ = hp.z;
-            frameTopY = hp.y + 0.22;
+            frameTopY = hp.y + 0.18; // less headroom, more body
             if (chest) {
               const cp = chest.getWorldPosition(new THREE.Vector3());
-              frameBottomY = cp.y - 0.1;
+              // Show head + full upper torso down to waist for natural framing
+              frameBottomY = cp.y - 0.4;
             } else {
-              frameBottomY = hp.y - 0.4;
+              frameBottomY = hp.y - 0.7;
             }
           } else {
             const center = fullBox.getCenter(new THREE.Vector3());
