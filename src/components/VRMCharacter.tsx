@@ -25,10 +25,32 @@ interface Props {
  * - Periodic blink via the model's blink expression
  * - Cursor look-at via VRMLookAt
  * - Mouth blendshape driven by `mouthAmplitude` prop (lip-sync hook)
+ * - Rest pose: arms hanging down (no T-pose), with subtle idle sway
  *
  * Tries /vrm/character.vrm first (user-supplied), falls back to /vrm/sample.vrm
  * (bundled). If both fail, calls `onError` so the parent can show a fallback.
  */
+
+/**
+ * Apply natural arms-down rest pose to a freshly loaded VRM.
+ * VRMs default to T-pose because rest skinning is bound that way.
+ * We rotate the upper-arm bones ~72° around their local Z so they hang,
+ * add a small elbow bend, and relax the hands inward.
+ */
+function applyRestPose(vrm: VRM) {
+  const set = (name: string, x: number, y: number, z: number) => {
+    const bone = vrm.humanoid?.getRawBoneNode(name as never);
+    if (bone) bone.rotation.set(x, y, z);
+  };
+  // Upper arms: positive Z for left, negative for right brings them down.
+  set("leftUpperArm", 0, 0, 1.2);
+  set("rightUpperArm", 0, 0, -1.2);
+  // Slight forward bend at elbow + hand for relaxed posture.
+  set("leftLowerArm", 0, 0, 0.18);
+  set("rightLowerArm", 0, 0, -0.18);
+  set("leftHand", 0, 0, 0.1);
+  set("rightHand", 0, 0, -0.1);
+}
 export function VRMCharacter({
   size = 280,
   mouthAmplitude = 0,
@@ -49,9 +71,28 @@ export function VRMCharacter({
     blinkUntil: number;
     nextBlinkAt: number;
     mouthAmp: number;
-    /** Active reaction expression name + its end time. */
     reaction: { name: string; until: number } | null;
-  }>({ blinkUntil: 0, nextBlinkAt: 0, mouthAmp: 0, reaction: null });
+    /** Cached references + base rotations for the idle sway loop. */
+    armRest: {
+      leftUpperArm: THREE.Object3D | null;
+      rightUpperArm: THREE.Object3D | null;
+      head: THREE.Object3D | null;
+      baseLeftUpperArmZ: number;
+      baseRightUpperArmZ: number;
+    };
+  }>({
+    blinkUntil: 0,
+    nextBlinkAt: 0,
+    mouthAmp: 0,
+    reaction: null,
+    armRest: {
+      leftUpperArm: null,
+      rightUpperArm: null,
+      head: null,
+      baseLeftUpperArmZ: 0,
+      baseRightUpperArmZ: 0,
+    },
+  });
   const [state, setState] = useState<LoadState>("loading");
 
   // Update mouth-amplitude ref so the rAF loop reads the freshest value
@@ -139,91 +180,86 @@ export function VRMCharacter({
 
           // Step 1: rotate VRM 0.x (no-op on 1.0).
           VRMUtils.rotateVRM0(vrm);
+
+          // Step 2: FORCE additional 180° rotation. Our bundled VRoid exports
+          // (Shino + AvatarSample_*) all face -Z despite being marked 1.0 —
+          // VRMUtils.rotateVRM0 only fixes 0.x. We always need the extra flip.
+          // If users later supply a properly-exported VRM 1.0 that faces +Z,
+          // we can expose a settings toggle then.
+          vrm.scene.rotation.y += Math.PI;
           vrm.scene.updateMatrixWorld(true);
 
-          // Step 2: detect actual facing using head bone forward vector.
-          // Some VRoid exports (incl. our bundled Shino) are marked 1.0 but
-          // still face -Z. We sample the head's world-space forward and flip
-          // the whole scene if it points backwards.
-          const head = vrm.humanoid?.getRawBoneNode("head");
-          const charForward = new THREE.Vector3(0, 0, 1);
-          if (head) {
-            const headQuat = head.getWorldQuaternion(new THREE.Quaternion());
-            charForward.applyQuaternion(headQuat).normalize();
-            if (charForward.z < 0) {
-              vrm.scene.rotation.y += Math.PI;
-              vrm.scene.updateMatrixWorld(true);
-              charForward.negate();
-            }
-          }
+          // Step 3: apply natural REST POSE (arms down) — VRMs ship in T-pose
+          // by default, which looks creepy. We rotate upper arms to hang
+          // by the sides, add elbow bend, settle hands.
+          applyRestPose(vrm);
+          vrm.scene.updateMatrixWorld(true);
 
           scene.add(vrm.scene);
           stateRef.current.vrm = vrm;
 
-          // Step 3: compute upper-body frame (head + chest) using bones.
+          // Cache bone refs + base rotations for the idle-sway tick loop.
+          const luArm = vrm.humanoid?.getRawBoneNode("leftUpperArm") as THREE.Object3D | undefined;
+          const ruArm = vrm.humanoid?.getRawBoneNode("rightUpperArm") as THREE.Object3D | undefined;
+          const headBone = vrm.humanoid?.getRawBoneNode("head") as THREE.Object3D | undefined;
+          stateRef.current.armRest = {
+            leftUpperArm: luArm ?? null,
+            rightUpperArm: ruArm ?? null,
+            head: headBone ?? null,
+            baseLeftUpperArmZ: luArm?.rotation.z ?? 0,
+            baseRightUpperArmZ: ruArm?.rotation.z ?? 0,
+          };
+
+          // Step 4: compute upper-body frame (head + chest) using bones.
+          const head = vrm.humanoid?.getRawBoneNode("head");
           const chest =
             vrm.humanoid?.getRawBoneNode("chest") ||
             vrm.humanoid?.getRawBoneNode("upperChest") ||
             vrm.humanoid?.getRawBoneNode("spine");
 
-          // Defaults — overridden if we have bones.
           let frameTopY = 1.6;
           let frameBottomY = 1.2;
           let frameCenterX = 0;
           let frameCenterY = 1.4;
           let frameCenterZ = 0;
-          let frameWidth = 0.4;
+          // FIXED frameWidth = ~55cm covers head + hair + shoulders generously.
+          // Don't use fullSize.x because T-pose hands/sleeves balloon the bbox.
+          const frameWidth = 0.55;
 
-          // Use the whole-model bbox to gauge head/hair width (for horizontal fit).
           const fullBox = new THREE.Box3().setFromObject(vrm.scene);
-          const fullSize = fullBox.getSize(new THREE.Vector3());
-          frameWidth = fullSize.x;
 
           if (head) {
             const hp = head.getWorldPosition(new THREE.Vector3());
             frameCenterX = hp.x;
             frameCenterZ = hp.z;
-            frameTopY = hp.y + 0.22; // headroom above hair
+            frameTopY = hp.y + 0.22;
             if (chest) {
               const cp = chest.getWorldPosition(new THREE.Vector3());
-              frameBottomY = cp.y - 0.1; // include shoulders + a hair below
+              frameBottomY = cp.y - 0.1;
             } else {
               frameBottomY = hp.y - 0.4;
             }
           } else {
             const center = fullBox.getCenter(new THREE.Vector3());
+            const sz = fullBox.getSize(new THREE.Vector3());
             frameCenterX = center.x;
             frameCenterZ = center.z;
             frameTopY = fullBox.max.y + 0.05;
-            frameBottomY = center.y + fullSize.y * 0.05;
+            frameBottomY = center.y + sz.y * 0.05;
           }
 
           const frameHeight = Math.max(0.001, frameTopY - frameBottomY);
           frameCenterY = (frameTopY + frameBottomY) / 2;
 
-          // Step 4: compute camera distance so BOTH height and width fit.
-          // 30% vertical padding, 20% horizontal — comfortably uncropped.
           const fovRad = (camera.fov * Math.PI) / 180;
-          const distanceH = (frameHeight / 2 / Math.tan(fovRad / 2)) * 1.3;
-          const distanceW = (frameWidth / 2 / Math.tan(fovRad / 2)) * 1.2;
+          const distanceH = (frameHeight / 2 / Math.tan(fovRad / 2)) * 1.25;
+          const distanceW = (frameWidth / 2 / Math.tan(fovRad / 2)) * 1.1;
           const distance = Math.max(distanceH, distanceW);
 
-          // Step 5: place camera along the character's actual forward vector
-          // (works whether character was originally facing +Z or -Z).
-          camera.position.set(
-            frameCenterX + charForward.x * distance,
-            frameCenterY,
-            frameCenterZ + charForward.z * distance,
-          );
+          // After our forced flip, character faces +Z, so camera goes +Z.
+          camera.position.set(frameCenterX, frameCenterY, frameCenterZ + distance);
           camera.lookAt(frameCenterX, frameCenterY, frameCenterZ);
-
-          // Eye-tracking target sits 1m in front of the character along the
-          // same forward direction, slightly above eye level for natural feel.
-          lookTarget.position.set(
-            frameCenterX + charForward.x,
-            frameCenterY + 0.1,
-            frameCenterZ + charForward.z,
-          );
+          lookTarget.position.set(frameCenterX, frameCenterY + 0.1, frameCenterZ + 1);
 
           // Wire VRM look-at to our movable target.
           if (vrm.lookAt) {
@@ -305,10 +341,27 @@ export function VRMCharacter({
           }
         }
 
-        // ---- Subtle breathing — bob the whole rig a hair ----
+        // ---- Subtle breathing + idle motion ----
         const phase = t / 1000;
-        vrm.scene.position.y = Math.sin(phase * 1.6) * 0.004;
-        vrm.scene.rotation.y = Math.sin(phase * 0.5) * 0.04;
+        // Whole-rig vertical bob (chest breathing illusion)
+        vrm.scene.position.y = Math.sin(phase * 1.6) * 0.005;
+        // Gentle Y-rotation around the forced-flip baseline (Math.PI).
+        vrm.scene.rotation.y = Math.PI + Math.sin(phase * 0.45) * 0.06;
+
+        // Procedural idle: gentle arm sway + head tilt + neck breathing.
+        const arms = stateRef.current.armRest;
+        if (arms.leftUpperArm) {
+          arms.leftUpperArm.rotation.z =
+            arms.baseLeftUpperArmZ + Math.sin(phase * 0.7) * 0.025;
+        }
+        if (arms.rightUpperArm) {
+          arms.rightUpperArm.rotation.z =
+            arms.baseRightUpperArmZ - Math.sin(phase * 0.7) * 0.025;
+        }
+        if (arms.head) {
+          arms.head.rotation.z = Math.sin(phase * 0.4) * 0.04;
+          arms.head.rotation.x = Math.sin(phase * 0.6) * 0.02;
+        }
       }
 
       renderer.render(scene, camera);
