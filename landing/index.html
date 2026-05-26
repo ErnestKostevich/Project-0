@@ -260,18 +260,18 @@
 
         <a
           id="primary-download"
-          href="https://github.com/ErnestKostevich/Project-0/releases/latest"
+          href="https://github.com/ErnestKostevich/Project-0/releases/tag/v0.0.1"
           class="cta cta-large"
         >
           <span id="primary-download-label">Download for your OS</span>
           <span class="cta-arrow">↓</span>
         </a>
         <div class="download-versions" id="download-versions">
-          <a class="dl-link" data-os="windows" href="https://github.com/ErnestKostevich/Project-0/releases/latest">
+          <a class="dl-link" data-os="windows" href="https://github.com/ErnestKostevich/Project-0/releases/tag/v0.0.1">
             <span class="dl-os">Windows</span>
             <span class="dl-format">.exe installer</span>
           </a>
-          <a class="dl-link" data-os="linux" href="https://github.com/ErnestKostevich/Project-0/releases/latest">
+          <a class="dl-link" data-os="linux" href="https://github.com/ErnestKostevich/Project-0/releases/tag/v0.0.1">
             <span class="dl-os">Linux</span>
             <span class="dl-format">.AppImage / .deb</span>
           </a>
@@ -485,7 +485,9 @@
       (function detectOS() {
         const ua = navigator.userAgent;
         const plat = (navigator.userAgentData?.platform || navigator.platform || "").toLowerCase();
-        const release = "https://github.com/ErnestKostevich/Project-0/releases/latest/download";
+        // Direct tag URL — /latest/ doesn't list prereleases.
+        // Bump this when releasing v0.0.2 etc.
+        const release = "https://github.com/ErnestKostevich/Project-0/releases/download/v0.0.1";
 
         let os = "windows";
         if (/mac|darwin/i.test(plat) || /Mac OS X/i.test(ua)) os = "macos";
