@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Lumi — your kawaii anime AI study buddy that lives on your desktop. Pomodoro reminders, focus coaching, friendly chat. Free download + Pro for $7/mo." />
+    <meta name="theme-color" content="#FF6789" />
+    <meta property="og:title" content="Lumi — Anime AI Study Buddy" />
+    <meta property="og:description" content="A kawaii anime girl that lives on your desktop and keeps you focused. Pomodoro, gentle nagging, voice chat." />
+    <meta property="og:type" content="website" />
+    <title>Lumi — Anime AI Study Buddy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Quicksand:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <!-- ====== Animated background ====== -->
+    <div class="bg-layer">
+      <div class="bg-blob bg-blob-1"></div>
+      <div class="bg-blob bg-blob-2"></div>
+      <div class="bg-blob bg-blob-3"></div>
+      <div class="bg-noise"></div>
+    </div>
+
+    <!-- ====== Floating sakura petals ====== -->
+    <div class="petals" aria-hidden></div>
+
+    <!-- ====== Nav ====== -->
+    <nav class="nav">
+      <a href="#" class="nav-brand">
+        <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden>
+          <defs>
+            <radialGradient id="navCore" cx="50%" cy="45%" r="55%">
+              <stop offset="0%" stop-color="#FFFFFF" />
+              <stop offset="100%" stop-color="#FF6789" />
+            </radialGradient>
+            <linearGradient id="navPetal" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#FFD0DD" />
+              <stop offset="100%" stop-color="#FF6789" />
+            </linearGradient>
+          </defs>
+          <g>
+            <path transform="rotate(0 16 16)" fill="url(#navPetal)" d="M 16 4 C 18.5 7, 21 9, 21 13 C 21 16, 18.5 17.5, 16 17.5 C 13.5 17.5, 11 16, 11 13 C 11 9, 13.5 7, 16 4 Z" />
+            <path transform="rotate(72 16 16)" fill="url(#navPetal)" d="M 16 4 C 18.5 7, 21 9, 21 13 C 21 16, 18.5 17.5, 16 17.5 C 13.5 17.5, 11 16, 11 13 C 11 9, 13.5 7, 16 4 Z" />
+            <path transform="rotate(144 16 16)" fill="url(#navPetal)" d="M 16 4 C 18.5 7, 21 9, 21 13 C 21 16, 18.5 17.5, 16 17.5 C 13.5 17.5, 11 16, 11 13 C 11 9, 13.5 7, 16 4 Z" />
+            <path transform="rotate(216 16 16)" fill="url(#navPetal)" d="M 16 4 C 18.5 7, 21 9, 21 13 C 21 16, 18.5 17.5, 16 17.5 C 13.5 17.5, 11 16, 11 13 C 11 9, 13.5 7, 16 4 Z" />
+            <path transform="rotate(288 16 16)" fill="url(#navPetal)" d="M 16 4 C 18.5 7, 21 9, 21 13 C 21 16, 18.5 17.5, 16 17.5 C 13.5 17.5, 11 16, 11 13 C 11 9, 13.5 7, 16 4 Z" />
+          </g>
+          <circle cx="16" cy="16" r="4" fill="url(#navCore)" />
+        </svg>
+        <span class="nav-brand-text">Lumi</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+        <a href="#download" class="nav-cta">Download free</a>
+      </div>
+    </nav>
+
+    <!-- ====== Hero ====== -->
+    <section class="hero">
+      <div class="hero-inner">
+        <div class="hero-text">
+          <span class="hero-tag">✨ Now in beta · Windows · macOS · Linux</span>
+          <h1 class="hero-title">
+            Meet <span class="gradient-text">Lumi</span>, your anime study buddy.
+          </h1>
+          <p class="hero-sub">
+            A kawaii AI character who lives on your desktop and keeps you focused.
+            She runs your Pomodoros, nudges you when you slip into YouTube,
+            and actually speaks. SFW. Stripe-safe. Made by an indie dev.
+          </p>
+
+          <form class="email-form" id="signup-form">
+            <input
+              type="email"
+              required
+              placeholder="your@email.com"
+              class="email-input"
+              name="email"
+              autocomplete="email"
+            />
+            <button type="submit" class="cta">
+              Get early access
+              <span class="cta-arrow">→</span>
+            </button>
+          </form>
+          <div class="hero-meta">
+            Free forever · BYO-API-key supported · Pro $7/mo
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="window-mock">
+            <div class="window-mock-top">
+              <span class="window-mock-dot"></span>
+              <span class="window-mock-name">Lumi</span>
+              <span class="window-mock-controls">−  ×</span>
+            </div>
+            <div class="window-mock-body">
+              <div class="window-mock-sakura"></div>
+              <!-- Live 3D VRM canvas — same engine as the desktop app -->
+              <canvas id="hero-vrm" class="hero-vrm-canvas" width="320" height="420"></canvas>
+              <div class="hero-vrm-loading" id="hero-vrm-loading">Loading character…</div>
+              <div class="window-mock-bubble">Let's start a Pomodoro 🍅</div>
+              <div class="window-mock-dock">
+                <span class="window-mock-btn">💬</span>
+                <span class="window-mock-btn window-mock-btn-primary">🍅</span>
+                <span class="window-mock-btn">⚙</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== Feature grid ====== -->
+    <section id="features" class="features">
+      <h2 class="section-title">Why Lumi <span class="gradient-text">actually helps</span></h2>
+      <p class="section-sub">She's not a romance chatbot. She's a study coach who happens to be cute.</p>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon icon-pink">🍅</div>
+          <h3>Pomodoros with real reactions</h3>
+          <p>25/5 cycles, but with a character who actually celebrates when you finish a session and gently nags when you go past break.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon icon-violet">🎙️</div>
+          <h3>She talks back</h3>
+          <p>Voice replies with lip-sync. Pick any voice on your system, or upgrade to Pro for ElevenLabs anime voices.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon icon-peach">🧠</div>
+          <h3>Bring your own AI key</h3>
+          <p>Plug in your OpenRouter key — Claude, GPT, Gemini, all supported. You only pay your model provider. Free tier on us.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon icon-mint">🪟</div>
+          <h3>Lives on your desktop</h3>
+          <p>Frameless transparent window. Drag anywhere, always-on-top, snaps to corners. ~30MB RAM, not a Chrome tab.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon icon-lavender">🎭</div>
+          <h3>Custom VRM characters</h3>
+          <p>Don't like the default? Drop any <code>.vrm</code> from VRoid Hub. Build your own avatar, swap whenever.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon icon-pink">🛡️</div>
+          <h3>Strictly SFW</h3>
+          <p>Not a romance app. Not a girlfriend. Lumi keeps you on task. No drama, no Stripe pain, no App Store rejection.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== Pricing ====== -->
+    <section id="pricing" class="pricing">
+      <h2 class="section-title">Simple <span class="gradient-text">pricing</span></h2>
+      <p class="section-sub">Free forever for the core experience. Pro unlocks the polish.</p>
+
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <div class="pricing-name">Free</div>
+          <div class="pricing-price"><span class="price-amt">$0</span><span class="price-unit">/forever</span></div>
+          <ul class="pricing-features">
+            <li>Default Lumi character</li>
+            <li>Drop your own <code>.vrm</code></li>
+            <li>BYO OpenRouter / Anthropic / OpenAI key</li>
+            <li>Pomodoro + focus chat</li>
+            <li>OS voice (Web Speech)</li>
+            <li>Local memory only</li>
+          </ul>
+          <a href="#download" class="pricing-cta pricing-cta-secondary">Download</a>
+        </div>
+
+        <div class="pricing-card pricing-card-pro">
+          <div class="pricing-tag">Most popular</div>
+          <div class="pricing-name">Pro</div>
+          <div class="pricing-price"><span class="price-amt">$7</span><span class="price-unit">/month</span></div>
+          <ul class="pricing-features">
+            <li>Everything in Free</li>
+            <li>Unlimited chat — no key needed</li>
+            <li>ElevenLabs anime voices</li>
+            <li>Real-time lip-sync</li>
+            <li>Cloud sync across devices</li>
+            <li>App-context reactions (focus / browsing / coding)</li>
+            <li>Priority support</li>
+          </ul>
+          <a href="/api/checkout?plan=pro" class="pricing-cta" data-checkout="pro">Pay with crypto →</a>
+        </div>
+
+        <div class="pricing-card">
+          <div class="pricing-name">Character DLC</div>
+          <div class="pricing-price"><span class="price-amt">$5–15</span><span class="price-unit">each</span></div>
+          <ul class="pricing-features">
+            <li>Hand-crafted character packs</li>
+            <li>Unique outfits + voice pack</li>
+            <li>Unique idle motions</li>
+            <li>One-time purchase</li>
+            <li>Yours forever</li>
+            <li>Works with Free or Pro</li>
+          </ul>
+          <a href="/api/checkout?plan=dlc" class="pricing-cta pricing-cta-secondary" data-checkout="dlc">Browse store →</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== FAQ ====== -->
+    <section id="faq" class="faq">
+      <h2 class="section-title">Honest <span class="gradient-text">questions</span></h2>
+
+      <div class="faq-list">
+        <details class="faq-item">
+          <summary>Is this a girlfriend / dating sim?</summary>
+          <p>No. Lumi is intentionally a productivity coach — friendly senpai energy, not romantic. She'll redirect if you try to push her that way. We made this call partly for ethics, partly because Stripe/PayPal/Apple kill anything else.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary>How much does the AI cost me?</summary>
+          <p>On the Free tier you bring your own API key (OpenRouter, Anthropic, OpenAI — your choice). You pay the model provider directly, usually less than $1/month at normal use. On Pro, we cover the model spend.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary>Can I use my own character?</summary>
+          <p>Yes. Lumi reads any standard <code>.vrm</code> file. Drop yours into the app folder, or grab one from VRoid Hub. We're also commissioning premium character packs as DLC.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary>Does it work offline?</summary>
+          <p>The character + Pomodoro + timer + voice all work offline. Chat needs an internet connection because we route to LLM providers.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary>Is my data private?</summary>
+          <p>Yes. Everything is stored locally on your device. Your API key never leaves your machine. We don't operate any server.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary>What platforms?</summary>
+          <p>Windows first (live beta), macOS and Linux next. Steam release planned for Q3.</p>
+        </details>
+      </div>
+    </section>
+
+    <!-- ====== Download / final CTA ====== -->
+    <section id="download" class="download">
+      <div class="download-card">
+        <h2>Make focus feel like home.</h2>
+        <p>Get the beta + early-bird pricing.</p>
+        <form class="email-form" id="signup-form-2">
+          <input
+            type="email"
+            required
+            placeholder="your@email.com"
+            class="email-input"
+            name="email"
+            autocomplete="email"
+          />
+          <button type="submit" class="cta">
+            Notify me
+            <span class="cta-arrow">→</span>
+          </button>
+        </form>
+        <div class="download-platforms">
+          <span class="platform-pill">Windows</span>
+          <span class="platform-pill platform-pill-soon">macOS soon</span>
+          <span class="platform-pill platform-pill-soon">Linux soon</span>
+          <span class="platform-pill platform-pill-soon">Steam Q3</span>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div>© 2026 Lumi · Made with 🌸 by an indie dev</div>
+      <div class="footer-links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="mailto:hi@lumi.app">Contact</a>
+      </div>
+    </footer>
+
+    <!-- Live 3D VRM character in the hero — same model as the desktop app -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/",
+          "@pixiv/three-vrm": "https://unpkg.com/@pixiv/three-vrm@3.5.0/lib/three-vrm.module.js"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+      import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+      import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
+
+      const canvas = document.getElementById("hero-vrm");
+      const loadingLabel = document.getElementById("hero-vrm-loading");
+      if (canvas) {
+        const W = canvas.width;
+        const H = canvas.height;
+
+        const renderer = new THREE.WebGLRenderer({
+          canvas,
+          alpha: true,
+          antialias: true,
+          premultipliedAlpha: false,
+        });
+        renderer.setPixelRatio(window.devicePixelRatio || 1);
+        renderer.setSize(W, H, false);
+        renderer.setClearColor(0x000000, 0);
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+        const scene = new THREE.Scene();
+
+        const key = new THREE.DirectionalLight(0xfff0f3, 1.5);
+        key.position.set(0.8, 2.5, 1.5);
+        scene.add(key);
+        const fill = new THREE.DirectionalLight(0xb4d4ff, 0.5);
+        fill.position.set(-1.5, 1.5, -0.5);
+        scene.add(fill);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+
+        const camera = new THREE.PerspectiveCamera(28, W / H, 0.05, 20);
+        camera.position.set(0, 1.4, 0.8);
+        camera.lookAt(0, 1.4, 0);
+
+        const lookTarget = new THREE.Object3D();
+        scene.add(lookTarget);
+
+        const clock = new THREE.Clock();
+        let vrm = null;
+        let blinkUntil = 0;
+        let nextBlinkAt = performance.now() + 3000;
+
+        const loader = new GLTFLoader();
+        loader.register((parser) => new VRMLoaderPlugin(parser));
+        loader.load(
+          "/sample.vrm",
+          (gltf) => {
+            const m = gltf.userData.vrm;
+            VRMUtils.removeUnnecessaryVertices(gltf.scene);
+            VRMUtils.combineSkeletons(gltf.scene);
+            m.scene.traverse((o) => { o.frustumCulled = false; });
+            VRMUtils.rotateVRM0(m);
+            scene.add(m.scene);
+            vrm = m;
+
+            const head = m.humanoid?.getRawBoneNode("head");
+            if (head) {
+              const hp = new THREE.Vector3();
+              head.getWorldPosition(hp);
+              camera.position.set(hp.x, hp.y + 0.02, hp.z + 0.42);
+              camera.lookAt(hp.x, hp.y - 0.05, hp.z);
+              lookTarget.position.set(hp.x, hp.y, hp.z + 1);
+            }
+            if (m.lookAt) m.lookAt.target = lookTarget;
+
+            if (loadingLabel) loadingLabel.style.opacity = "0";
+          },
+          undefined,
+          (err) => {
+            console.warn("[landing hero] VRM failed to load:", err);
+            if (loadingLabel) loadingLabel.textContent = "Failed to load — preview only.";
+          },
+        );
+
+        // Cursor tracking limited to the canvas area
+        canvas.addEventListener("mousemove", (e) => {
+          const rect = canvas.getBoundingClientRect();
+          const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+          const ndcY = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+          const v = new THREE.Vector3(ndcX, ndcY, 0.5).unproject(camera);
+          lookTarget.position.copy(v);
+        });
+
+        const tick = () => {
+          const t = performance.now();
+          const dt = clock.getDelta();
+          if (vrm) {
+            vrm.update(dt);
+            const e = vrm.expressionManager;
+            if (e) {
+              if (t < blinkUntil) e.setValue("blink", 1);
+              else {
+                e.setValue("blink", 0);
+                if (t > nextBlinkAt) {
+                  blinkUntil = t + 130;
+                  nextBlinkAt = t + 2800 + Math.random() * 2800;
+                }
+              }
+            }
+            const phase = t / 1000;
+            vrm.scene.position.y = Math.sin(phase * 1.6) * 0.004;
+            vrm.scene.rotation.y = Math.sin(phase * 0.5) * 0.05;
+          }
+          renderer.render(scene, camera);
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      }
+    </script>
+
+    <script>
+      // Email signup → store locally for now (swap to ConvertKit / Resend at launch).
+      function handleSignup(formId) {
+        const f = document.getElementById(formId);
+        if (!f) return;
+        f.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const email = f.querySelector('input[type="email"]').value;
+          const all = JSON.parse(localStorage.getItem("lumi_signups") || "[]");
+          all.push({ email, at: new Date().toISOString() });
+          localStorage.setItem("lumi_signups", JSON.stringify(all));
+          f.innerHTML = '<div class="signup-success">✨ You\\'re on the list. Watch your inbox.</div>';
+        });
+      }
+      handleSignup("signup-form");
+      handleSignup("signup-form-2");
+
+      // Generate falling petals dynamically.
+      const petalLayer = document.querySelector(".petals");
+      if (petalLayer) {
+        for (let i = 0; i < 24; i++) {
+          const p = document.createElement("span");
+          p.className = "petal";
+          p.style.left = Math.random() * 100 + "%";
+          p.style.animationDuration = 12 + Math.random() * 18 + "s";
+          p.style.animationDelay = -Math.random() * 25 + "s";
+          p.style.setProperty("--drift", (Math.random() * 2 - 1) * 60 + "px");
+          p.style.setProperty("--rot", Math.random() * 360 + "deg");
+          p.style.fontSize = 12 + Math.random() * 16 + "px";
+          p.textContent = "❀";
+          petalLayer.appendChild(p);
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,25 @@
+name = "lumi-pay"
+main = "src/index.ts"
+compatibility_date = "2025-05-01"
+compatibility_flags = ["nodejs_compat"]
+
+# KV namespace for storing payment records + issued licenses.
+# Create with: wrangler kv:namespace create LICENSES
+# Then paste the id below.
+[[kv_namespaces]]
+binding = "LICENSES"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# Secrets are NOT stored in this file. Set them with:
+#   wrangler secret put NOWPAYMENTS_API_KEY
+#   wrangler secret put NOWPAYMENTS_IPN_SECRET
+#   wrangler secret put LICENSE_SIGNING_SECRET
+#   wrangler secret put RESEND_API_KEY
+
+[vars]
+LICENSE_FROM_EMAIL = "licenses@lumi.app"
+APP_NAME = "Lumi"
+
+# CORS — frontend (Tauri app) origin allowed to call /verify-license etc.
+# Tauri dev server is on tauri://localhost; in prod the desktop bundle has a
+# different scheme so we accept all and rely on signed licenses for security.

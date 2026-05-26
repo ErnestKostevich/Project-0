@@ -1,0 +1,14 @@
+{
+  "name": "lumi-landing",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node serve.mjs",
+    "deploy": "vercel deploy --prod"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.0",
+    "typescript": "~5.8.3"
+  }
+}

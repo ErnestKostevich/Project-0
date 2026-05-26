@@ -1,0 +1,5 @@
+# Dev-only static server, never deployed.
+serve.mjs
+
+# Source assets that are too large or already inlined elsewhere.
+# (sample.vrm is fine — 15MB, Vercel free allows up to 100MB per file)

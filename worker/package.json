@@ -1,0 +1,17 @@
+{
+  "name": "lumi-worker",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Cloudflare Worker — NOWPayments checkout + IPN webhook + license delivery for Lumi.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "types": "wrangler types"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240924.0",
+    "typescript": "~5.8.3",
+    "wrangler": "^3.78.0"
+  }
+}
