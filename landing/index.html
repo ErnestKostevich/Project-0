@@ -353,26 +353,34 @@
 
         const loader = new GLTFLoader();
         loader.register((parser) => new VRMLoaderPlugin(parser));
-        const applyRestPose = (m) => {
-          // Try multiple bone-name fallbacks in case the VRM uses non-spec names.
-          const set = (names, x, y, z) => {
-            for (const name of names) {
-              const b = m.humanoid?.getRawBoneNode?.(name) ||
-                m.humanoid?.getBoneNode?.(name);
-              if (b) {
-                b.rotation.set(x, y, z);
-                return true;
-              }
+        // Rest-pose targets — applied every frame inside the tick loop
+        // because vrm.update(dt) clobbers raw bone rotations otherwise.
+        const REST_POSE = [
+          { names: ["leftUpperArm", "LeftUpperArm", "left_upper_arm"], rot: [0, 0, 1.2] },
+          { names: ["rightUpperArm", "RightUpperArm", "right_upper_arm"], rot: [0, 0, -1.2] },
+          { names: ["leftLowerArm", "LeftLowerArm", "left_lower_arm"], rot: [0, 0, 0.18] },
+          { names: ["rightLowerArm", "RightLowerArm", "right_lower_arm"], rot: [0, 0, -0.18] },
+          { names: ["leftHand", "LeftHand", "left_hand"], rot: [0, 0, 0.1] },
+          { names: ["rightHand", "RightHand", "right_hand"], rot: [0, 0, -0.1] },
+        ];
+        let restPoseBones = null; // cached after VRM loads
+        const cacheRestPoseBones = (m) => {
+          restPoseBones = REST_POSE.map((p) => {
+            let bone = null;
+            for (const name of p.names) {
+              bone = m.humanoid?.getRawBoneNode?.(name) || null;
+              if (bone) break;
             }
-            return false;
-          };
-          const ok1 = set(["leftUpperArm", "LeftUpperArm", "left_upper_arm"], 0, 0, 1.2);
-          set(["rightUpperArm", "RightUpperArm", "right_upper_arm"], 0, 0, -1.2);
-          set(["leftLowerArm", "LeftLowerArm", "left_lower_arm"], 0, 0, 0.18);
-          set(["rightLowerArm", "RightLowerArm", "right_lower_arm"], 0, 0, -0.18);
-          set(["leftHand", "LeftHand", "left_hand"], 0, 0, 0.1);
-          set(["rightHand", "RightHand", "right_hand"], 0, 0, -0.1);
-          if (!ok1) console.warn("[landing] no upper-arm bone found — T-pose remains");
+            return { bone, rot: p.rot };
+          });
+          const found = restPoseBones.filter((b) => b.bone).length;
+          console.log(`[landing] cached ${found}/${REST_POSE.length} rest-pose bones`);
+        };
+        const tickRestPose = () => {
+          if (!restPoseBones) return;
+          for (const { bone, rot } of restPoseBones) {
+            if (bone) bone.rotation.set(rot[0], rot[1], rot[2]);
+          }
         };
 
         // ?v=4 — bumped to bypass any browser-cached older binary
@@ -388,7 +396,8 @@
             VRMUtils.rotateVRM0(m);
             m.scene.rotation.y += Math.PI;
             m.scene.updateMatrixWorld(true);
-            applyRestPose(m);
+            cacheRestPoseBones(m);
+            tickRestPose(); // initial pose before first render
             m.scene.updateMatrixWorld(true);
 
             scene.add(m.scene);
@@ -450,6 +459,10 @@
           const dt = clock.getDelta();
           if (vrm) {
             vrm.update(dt);
+            // Re-apply rest pose AFTER vrm.update — three-vrm's update normalises
+            // raw bone rotations from the humanoid pose each frame, so a one-time
+            // applyRestPose gets wiped. Setting them every frame wins.
+            tickRestPose();
             const e = vrm.expressionManager;
             if (e) {
               if (t < blinkUntil) e.setValue("blink", 1);
