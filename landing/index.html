@@ -301,9 +301,9 @@
     <script type="importmap">
       {
         "imports": {
-          "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
-          "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/",
-          "@pixiv/three-vrm": "https://unpkg.com/@pixiv/three-vrm@3.5.0/lib/three-vrm.module.js"
+          "three": "https://unpkg.com/three@0.184.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.184.0/examples/jsm/",
+          "@pixiv/three-vrm": "https://unpkg.com/@pixiv/three-vrm@3.5.3/lib/three-vrm.module.js"
         }
       }
     </script>
@@ -354,20 +354,30 @@
         const loader = new GLTFLoader();
         loader.register((parser) => new VRMLoaderPlugin(parser));
         const applyRestPose = (m) => {
-          const set = (name, x, y, z) => {
-            const b = m.humanoid?.getRawBoneNode(name);
-            if (b) b.rotation.set(x, y, z);
+          // Try multiple bone-name fallbacks in case the VRM uses non-spec names.
+          const set = (names, x, y, z) => {
+            for (const name of names) {
+              const b = m.humanoid?.getRawBoneNode?.(name) ||
+                m.humanoid?.getBoneNode?.(name);
+              if (b) {
+                b.rotation.set(x, y, z);
+                return true;
+              }
+            }
+            return false;
           };
-          set("leftUpperArm",  0, 0,  1.2);
-          set("rightUpperArm", 0, 0, -1.2);
-          set("leftLowerArm",  0, 0,  0.18);
-          set("rightLowerArm", 0, 0, -0.18);
-          set("leftHand",      0, 0,  0.1);
-          set("rightHand",     0, 0, -0.1);
+          const ok1 = set(["leftUpperArm", "LeftUpperArm", "left_upper_arm"], 0, 0, 1.2);
+          set(["rightUpperArm", "RightUpperArm", "right_upper_arm"], 0, 0, -1.2);
+          set(["leftLowerArm", "LeftLowerArm", "left_lower_arm"], 0, 0, 0.18);
+          set(["rightLowerArm", "RightLowerArm", "right_lower_arm"], 0, 0, -0.18);
+          set(["leftHand", "LeftHand", "left_hand"], 0, 0, 0.1);
+          set(["rightHand", "RightHand", "right_hand"], 0, 0, -0.1);
+          if (!ok1) console.warn("[landing] no upper-arm bone found — T-pose remains");
         };
 
+        // ?v=4 — bumped to bypass any browser-cached older binary
         loader.load(
-          "/sample.vrm?v=2",
+          "/sample.vrm?v=4",
           (gltf) => {
             const m = gltf.userData.vrm;
             VRMUtils.removeUnnecessaryVertices(gltf.scene);
