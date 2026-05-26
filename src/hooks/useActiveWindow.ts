@@ -65,7 +65,7 @@ export function classifyApp(window: ActiveWindow | null): AppCategory {
  * (so Lumi can nudge after N minutes of YouTube).
  */
 export function useActiveWindow(intervalMs = 8000): ActiveWindowState {
-  const [window, setWindow] = useState<ActiveWindow | null>(null);
+  const [activeWin, setActiveWin] = useState<ActiveWindow | null>(null);
   const [category, setCategory] = useState<AppCategory>("neutral");
   const [streakStart, setStreakStart] = useState<number>(Date.now());
   const [now, setNow] = useState<number>(Date.now());
@@ -73,42 +73,38 @@ export function useActiveWindow(intervalMs = 8000): ActiveWindowState {
   useEffect(() => {
     let cancelled = false;
     let lastCategory: AppCategory = "neutral";
-    let lastStreak = Date.now();
 
     const poll = async () => {
       try {
         const result = await invoke<ActiveWindow | null>("get_active_window");
         if (cancelled) return;
-        setWindow(result ?? null);
+        setActiveWin(result ?? null);
         const cat = classifyApp(result);
         if (cat !== lastCategory) {
-          lastStreak = Date.now();
           lastCategory = cat;
-          setStreakStart(lastStreak);
+          setStreakStart(Date.now());
         }
         setCategory(cat);
         setNow(Date.now());
-      } catch (err) {
+      } catch {
         // Tauri command not available (e.g. running in browser dev) — fail silent.
         if (!cancelled) {
-          setWindow(null);
+          setActiveWin(null);
           setCategory("neutral");
         }
       }
     };
 
     void poll();
-    const id = window?.setInterval ? null : null; // type guard
     const tid = setInterval(poll, intervalMs);
     return () => {
       cancelled = true;
       clearInterval(tid);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [intervalMs]);
 
   return {
-    window,
+    window: activeWin,
     category,
     categoryStreakMs: now - streakStart,
   };

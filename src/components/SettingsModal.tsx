@@ -2,6 +2,7 @@ import { useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { PROVIDERS, type Provider } from "../lib/llm";
 import { PERSONALITY_MODES, type PersonalityMode } from "../lib/personality";
+import { ELEVEN_VOICE_PRESETS } from "../lib/elevenlabs";
 import { checkoutUrl } from "../lib/config";
 import type { Settings } from "../hooks/useSettings";
 import { IconClose, IconEye, IconEyeOff } from "./icons/Icons";
