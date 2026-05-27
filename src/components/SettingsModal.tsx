@@ -65,17 +65,32 @@ export function SettingsModal({ open, onClose, settings, onChange, tts, onShowPo
 
   const handleUpgrade = async () => {
     const url = checkoutUrl("pro");
+    console.log("[Upgrade] opening URL:", url);
+    let opened = false;
+    // Primary path — Tauri plugin-opener, calls OS default browser.
     try {
       await openUrl(url);
+      opened = true;
+      console.log("[Upgrade] openUrl returned ok");
     } catch (err) {
-      console.warn("[Upgrade] openUrl failed, trying window.open", err);
+      console.warn("[Upgrade] openUrl failed:", err);
+    }
+    // Fallback — browser window.open. In Tauri WebView this usually opens
+    // the URL in the system default browser thanks to the plugin's window
+    // navigation handler.
+    if (!opened) {
       try {
-        window.open(url, "_blank");
-      } catch (err2) {
-        // Both failed — show the URL inline so user can copy it manually.
-        // eslint-disable-next-line no-alert
-        prompt("Open this URL in your browser to upgrade:", url);
+        const w = window.open(url, "_blank", "noopener,noreferrer");
+        opened = !!w;
+        console.log("[Upgrade] window.open returned", opened);
+      } catch (err) {
+        console.warn("[Upgrade] window.open failed:", err);
       }
+    }
+    // Last-resort — show the URL so the user can copy/paste manually.
+    if (!opened) {
+      // eslint-disable-next-line no-alert
+      alert(`Open this URL in your browser to upgrade:\n\n${url}`);
     }
   };
 
@@ -89,22 +104,25 @@ export function SettingsModal({ open, onClose, settings, onChange, tts, onShowPo
       </div>
 
       <div className="settings-body">
-        {/* ============ Pro upgrade card ============ */}
+        {/* ============ Pro upgrade card — single clickable button ============ */}
         {settings.licenseKey ? (
           <div className="upgrade-card upgrade-card-active">
-            <div className="upgrade-title">✨ Lumi Pro</div>
+            <div className="upgrade-title">✨ Lumi Pro active</div>
             <div className="upgrade-sub">Thanks for supporting indie dev work.</div>
           </div>
         ) : (
-          <div className="upgrade-card">
-            <div className="upgrade-title">Upgrade to Lumi Pro</div>
-            <div className="upgrade-sub">
-              ElevenLabs anime voice · real lip-sync · supports indie dev · $7/mo
-            </div>
-            <button className="upgrade-btn" onClick={handleUpgrade}>
-              Pay with crypto →
-            </button>
-          </div>
+          <button
+            type="button"
+            className="upgrade-pill"
+            onClick={handleUpgrade}
+            title="Open Lumi Pro checkout in your browser"
+          >
+            <span className="upgrade-pill-main">✨ Upgrade to Lumi Pro</span>
+            <span className="upgrade-pill-sub">
+              ElevenLabs voice · real lip-sync · $7/mo · pay with crypto
+            </span>
+            <span className="upgrade-pill-arrow">→</span>
+          </button>
         )}
 
         {/* ============ Identity ============ */}
