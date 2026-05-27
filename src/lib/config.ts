@@ -33,7 +33,8 @@ export const PAYMENTS = {
 /** Build the URL the user should navigate to for a Pro upgrade. */
 export function checkoutUrl(plan: "pro" | "dlc", opts: { email?: string; product?: string } = {}): string {
   if (PAYMENTS.workerUrl) {
-    const u = new URL(`${PAYMENTS.workerUrl.replace(/\/$/, "")}/checkout`);
+    // Vercel Edge Functions live at /api/<name>, not /<name>.
+    const u = new URL(`${PAYMENTS.workerUrl.replace(/\/$/, "")}/api/checkout`);
     u.searchParams.set("plan", plan);
     if (opts.email) u.searchParams.set("email", opts.email);
     if (opts.product) u.searchParams.set("product", opts.product);
@@ -41,7 +42,10 @@ export function checkoutUrl(plan: "pro" | "dlc", opts: { email?: string; product
   }
   // Fallback to static Payment Link
   const iid = plan === "pro" ? PAYMENTS.staticInvoices.pro : PAYMENTS.staticInvoices.dlc;
-  if (!iid) return "https://nowpayments.io/"; // graceful no-op
+  if (!iid) {
+    // Last-resort: open the landing pricing section so user can click manually
+    return "https://lumi-bloom0.vercel.app/#pricing";
+  }
   const u = new URL("https://nowpayments.io/payment/");
   u.searchParams.set("iid", iid);
   return u.toString();
