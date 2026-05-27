@@ -117,11 +117,12 @@ export function SettingsModal({ open, onClose, settings, onChange, tts, onShowPo
             onClick={handleUpgrade}
             title="Open Lumi Pro checkout in your browser"
           >
-            <span className="upgrade-pill-main">✨ Upgrade to Lumi Pro</span>
-            <span className="upgrade-pill-sub">
-              ElevenLabs voice · real lip-sync · $7/mo · pay with crypto
+            <span className="upgrade-pill-main">
+              ✨ Upgrade to Lumi Pro <span className="upgrade-pill-arrow">→</span>
             </span>
-            <span className="upgrade-pill-arrow">→</span>
+            <span className="upgrade-pill-sub">
+              ElevenLabs voice · $7/month
+            </span>
           </button>
         )}
 
