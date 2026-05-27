@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { streamChat, type ChatMessage, type Provider } from "../lib/llm";
+import { streamChat, PROVIDERS, type ChatMessage, type Provider } from "../lib/llm";
 import { buildSystemPrompt, type PersonalityContext } from "../lib/personality";
 
 export interface ChatTurn {
@@ -45,11 +45,16 @@ export function useChat({ provider, apiKey, model, buildContext, onAssistantTurn
       if (busy) return;
 
       if (!apiKey) {
-        const providerLabel = provider === "mistral" ? "Mistral" : "OpenRouter";
-        const url =
-          provider === "mistral"
-            ? "console.mistral.ai/api-keys"
-            : "openrouter.ai/keys";
+        const cfg = PROVIDERS[provider];
+        const providerLabel = (() => {
+          switch (provider) {
+            case "mistral": return "Mistral";
+            case "openai": return "OpenAI";
+            case "anthropic": return "Anthropic";
+            default: return "OpenRouter";
+          }
+        })();
+        const url = cfg.keyUrl.replace(/^https?:\/\//, "");
         setTurnsState((t) => [
           ...t,
           { id: genId(), role: "user", content: trimmed },

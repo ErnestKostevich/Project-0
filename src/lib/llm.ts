@@ -1,22 +1,22 @@
 /**
  * Streaming chat client supporting multiple LLM providers.
  *
- * Currently shipped providers:
- *   - openrouter (default — multi-model routing: Claude / GPT / Gemini / Mistral / etc.)
- *   - mistral    (native Mistral La Plateforme API — EU-hosted, no middleman fees)
+ * Shipped providers (v0.0.1):
+ *   - openrouter (multi-model routing: Claude / GPT / Gemini / Mistral / etc.)
+ *   - openai     (native OpenAI — GPT-4o / o1 / o3 mini)
+ *   - anthropic  (native Claude — Opus / Sonnet / Haiku, different API shape)
+ *   - mistral    (native Mistral La Plateforme — EU-hosted)
  *
- * Both providers use OpenAI-compatible /chat/completions SSE format, so the
- * underlying fetch + parsing code is identical — only the endpoint and key
- * change per provider.
+ * OpenRouter / OpenAI / Mistral all use OpenAI-compatible /chat/completions
+ * SSE format. Anthropic uses its own /v1/messages endpoint with different
+ * headers, body shape, and SSE event structure — branched in streamChat.
  *
- * Adding more providers later (native Anthropic / OpenAI / DeepSeek):
- *   1. Append entry to PROVIDERS below with endpoint + keyUrl + models
- *   2. Add corresponding *Key field in useSettings → DEFAULTS
- *   3. (Anthropic specifically needs different headers + body format → branch
- *      streamChat on `apiFormat: 'anthropic'`)
+ * From a Tauri WebView, cross-origin fetch follows browser CORS rules.
+ * Anthropic requires the `anthropic-dangerous-direct-browser-access` header
+ * to permit non-server callers. We send it.
  */
 
-export type Provider = "openrouter" | "mistral";
+export type Provider = "openrouter" | "openai" | "anthropic" | "mistral";
 
 export interface ProviderConfig {
   id: Provider;
@@ -43,6 +43,36 @@ export const PROVIDERS: Record<Provider, ProviderConfig> = {
       { id: "anthropic/claude-3.5-haiku", label: "Claude 3.5 Haiku" },
       { id: "mistralai/mistral-large-2411", label: "Mistral Large (via OR)" },
       { id: "mistralai/mistral-small-2503", label: "Mistral Small (via OR)" },
+    ],
+  },
+  openai: {
+    id: "openai",
+    label: "OpenAI — GPT-4o / GPT-4o mini / o1",
+    endpoint: "https://api.openai.com/v1/chat/completions",
+    keyUrl: "https://platform.openai.com/api-keys",
+    keyHint: "Starts with sk-… (project key)",
+    defaultModel: "gpt-4o-mini",
+    models: [
+      { id: "gpt-4o", label: "GPT-4o", note: "Best general quality" },
+      { id: "gpt-4o-mini", label: "GPT-4o mini", note: "Cheapest, recommended" },
+      { id: "gpt-4-turbo", label: "GPT-4 Turbo" },
+      { id: "o1-mini", label: "o1-mini", note: "Reasoning, no system msg" },
+      { id: "gpt-3.5-turbo", label: "GPT-3.5 Turbo", note: "Legacy, very cheap" },
+    ],
+  },
+  anthropic: {
+    id: "anthropic",
+    label: "Anthropic — Claude direct",
+    endpoint: "https://api.anthropic.com/v1/messages",
+    keyUrl: "https://console.anthropic.com/settings/keys",
+    keyHint: "Starts with sk-ant-…",
+    defaultModel: "claude-3-5-sonnet-latest",
+    models: [
+      { id: "claude-3-5-sonnet-latest", label: "Claude 3.5 Sonnet", note: "Best writing" },
+      { id: "claude-3-5-haiku-latest", label: "Claude 3.5 Haiku", note: "Fast + cheap" },
+      { id: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet (Oct 2024)", note: "Pinned version" },
+      { id: "claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku (Oct 2024)", note: "Pinned version" },
+      { id: "claude-3-opus-20240229", label: "Claude 3 Opus", note: "Older, expensive" },
     ],
   },
   mistral: {
@@ -72,7 +102,7 @@ export interface ChatMessage {
 }
 
 export interface StreamOptions {
-  /** Which provider to call. Determines endpoint + auth. */
+  /** Which provider to call. Determines endpoint + auth + body shape. */
   provider: Provider;
   /** Provider-specific API key. */
   apiKey: string;
@@ -89,6 +119,24 @@ export interface StreamOptions {
 }
 
 export async function streamChat(opts: StreamOptions): Promise<void> {
+  const cfg = PROVIDERS[opts.provider];
+  if (!cfg) {
+    opts.onError(new Error(`Unknown provider: ${opts.provider}`));
+    return;
+  }
+
+  if (opts.provider === "anthropic") {
+    return streamAnthropic(opts, cfg);
+  }
+  return streamOpenAICompat(opts, cfg);
+}
+
+/**
+ * OpenAI / OpenRouter / Mistral — they all share the same /chat/completions
+ * SSE format. Delta is `json.choices[0].delta.content`, end sentinel is
+ * `data: [DONE]`.
+ */
+async function streamOpenAICompat(opts: StreamOptions, cfg: ProviderConfig): Promise<void> {
   const {
     provider,
     apiKey,
@@ -103,33 +151,41 @@ export async function streamChat(opts: StreamOptions): Promise<void> {
     temperature = 0.7,
   } = opts;
 
-  const cfg = PROVIDERS[provider];
-  if (!cfg) {
-    onError(new Error(`Unknown provider: ${provider}`));
-    return;
-  }
-
   const headers: Record<string, string> = {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
   };
-  // OpenRouter wants attribution headers for analytics + free-tier preferential routing.
+  // OpenRouter wants attribution headers for analytics + free-tier routing.
   if (provider === "openrouter") {
     headers["HTTP-Referer"] = "https://lumi-bloom0.vercel.app";
     headers["X-Title"] = "Lumi";
   }
 
-  try {
-    const response = await fetch(cfg.endpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
+  // OpenAI o1 family doesn't accept system messages — fold into first user msg.
+  const isO1 = provider === "openai" && /^o1/.test(model);
+  const body = isO1
+    ? {
+        model,
+        messages: [
+          { role: "user", content: `${systemPrompt}\n\n---\n\n${messages[0]?.content ?? ""}` },
+          ...messages.slice(1),
+        ],
+        stream: true,
+        max_completion_tokens: maxTokens,
+      }
+    : {
         model,
         messages: [{ role: "system", content: systemPrompt }, ...messages],
         stream: true,
         max_tokens: maxTokens,
         temperature,
-      }),
+      };
+
+  try {
+    const response = await fetch(cfg.endpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
       signal,
     });
 
@@ -162,6 +218,101 @@ export async function streamChat(opts: StreamOptions): Promise<void> {
           const json = JSON.parse(data);
           const delta = json.choices?.[0]?.delta?.content;
           if (typeof delta === "string" && delta.length) onDelta(delta);
+        } catch {
+          /* malformed chunk — skip */
+        }
+      }
+    }
+    onDone();
+  } catch (e) {
+    if ((e as Error).name === "AbortError") return;
+    onError(e instanceof Error ? e : new Error(String(e)));
+  }
+}
+
+/**
+ * Anthropic /v1/messages — different shape entirely:
+ *   - Headers: x-api-key + anthropic-version + anthropic-dangerous-direct-browser-access
+ *   - Body: { model, system, messages, max_tokens, stream: true }
+ *     where `system` is TOP-LEVEL (not a message role)
+ *   - SSE events: content_block_delta carries `delta.text`, end marker is
+ *     `message_stop` event (no `[DONE]` sentinel).
+ */
+async function streamAnthropic(opts: StreamOptions, cfg: ProviderConfig): Promise<void> {
+  const {
+    apiKey,
+    model,
+    messages,
+    systemPrompt,
+    onDelta,
+    onDone,
+    onError,
+    signal,
+    maxTokens = 500,
+    temperature = 0.7,
+  } = opts;
+
+  // Anthropic only accepts user/assistant in messages, system is separate.
+  const cleanedMessages = messages
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .map((m) => ({ role: m.role, content: m.content }));
+
+  const headers: Record<string, string> = {
+    "x-api-key": apiKey,
+    "anthropic-version": "2023-06-01",
+    "anthropic-dangerous-direct-browser-access": "true",
+    "Content-Type": "application/json",
+  };
+
+  try {
+    const response = await fetch(cfg.endpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        model,
+        system: systemPrompt,
+        messages: cleanedMessages,
+        max_tokens: maxTokens,
+        temperature,
+        stream: true,
+      }),
+      signal,
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "<unreadable>");
+      throw new Error(`${cfg.label} ${response.status}: ${text.slice(0, 300)}`);
+    }
+    if (!response.body) throw new Error("No response body");
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data:")) continue;
+        const data = trimmed.slice(5).trim();
+        if (!data) continue;
+        try {
+          const json = JSON.parse(data);
+          // Streaming text comes only on content_block_delta with type=text_delta.
+          if (json.type === "content_block_delta" && json.delta?.type === "text_delta") {
+            const txt = json.delta.text;
+            if (typeof txt === "string" && txt.length) onDelta(txt);
+          }
+          // Anthropic signals end via `message_stop` event (no [DONE] sentinel).
+          if (json.type === "message_stop") {
+            onDone();
+            return;
+          }
         } catch {
           /* malformed chunk — skip */
         }

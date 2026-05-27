@@ -28,13 +28,33 @@ interface Props {
 export function SettingsModal({ open, onClose, settings, onChange, tts, onShowPomodoroInfo }: Props) {
   const [revealKey, setRevealKey] = useState(false);
   const providerCfg = PROVIDERS[settings.provider];
-  const currentKey =
-    settings.provider === "mistral" ? settings.mistralKey : settings.openRouterKey;
+
+  const currentKey = (() => {
+    switch (settings.provider) {
+      case "mistral": return settings.mistralKey;
+      case "openai": return settings.openAIKey;
+      case "anthropic": return settings.anthropicKey;
+      default: return settings.openRouterKey;
+    }
+  })();
 
   const setProviderKey = (value: string) => {
-    if (settings.provider === "mistral") onChange({ mistralKey: value });
-    else onChange({ openRouterKey: value });
+    switch (settings.provider) {
+      case "mistral": onChange({ mistralKey: value }); break;
+      case "openai": onChange({ openAIKey: value }); break;
+      case "anthropic": onChange({ anthropicKey: value }); break;
+      default: onChange({ openRouterKey: value }); break;
+    }
   };
+
+  const providerShortName = (() => {
+    switch (settings.provider) {
+      case "mistral": return "Mistral";
+      case "openai": return "OpenAI";
+      case "anthropic": return "Anthropic";
+      default: return "OpenRouter";
+    }
+  })();
 
   const switchProvider = (newProvider: Provider) => {
     // When switching providers, also reset model to that provider's default
@@ -127,7 +147,7 @@ export function SettingsModal({ open, onClose, settings, onChange, tts, onShowPo
         {/* ============ API key for current provider ============ */}
         <label className="settings-row">
           <span className="settings-label">
-            {settings.provider === "mistral" ? "Mistral" : "OpenRouter"} API key{" "}
+            {providerShortName} API key{" "}
             <a
               href={providerCfg.keyUrl}
               target="_blank"

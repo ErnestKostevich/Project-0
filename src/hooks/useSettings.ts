@@ -13,6 +13,8 @@ export interface Settings {
   provider: Provider;
   /** Per-provider API keys (only the active one is used at any time). */
   openRouterKey: string;
+  openAIKey: string;
+  anthropicKey: string;
   mistralKey: string;
   /** Model id valid for the active provider. */
   model: string;
@@ -34,6 +36,8 @@ export interface Settings {
 const DEFAULTS: Settings = {
   provider: "openrouter",
   openRouterKey: "",
+  openAIKey: "",
+  anthropicKey: "",
   mistralKey: "",
   model: "anthropic/claude-3.5-sonnet",
   userName: "",
@@ -80,6 +84,11 @@ export function useSettings() {
 
 /** Active API key for the currently selected provider. */
 export function activeKey(s: Settings): string {
-  if (s.provider === "mistral") return s.mistralKey;
-  return s.openRouterKey;
+  switch (s.provider) {
+    case "mistral": return s.mistralKey;
+    case "openai": return s.openAIKey;
+    case "anthropic": return s.anthropicKey;
+    case "openrouter":
+    default: return s.openRouterKey;
+  }
 }

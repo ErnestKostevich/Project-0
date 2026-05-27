@@ -60,7 +60,7 @@ Lumi is **not** a romance app. Not a girlfriend simulator. She's a productivity 
 
 | Tier | Price | What you get |
 |---|---|---|
-| **Free** | $0 forever | Everything above + BYO OpenRouter / Mistral key + OS voices + app-context reactions |
+| **Free** | $0 forever | Everything above + BYO OpenRouter / OpenAI / Anthropic / Mistral key + OS voices + app-context reactions |
 | **Pro** | $7 / month | ElevenLabs anime voice with real amplitude-driven lip-sync + every future Pro feature auto-unlocked + supports an indie dev |
 | **Character DLC** | $5–15 each | Hand-crafted character packs with custom voice, outfits, idle motions (Q3 store launch) |
 
@@ -75,7 +75,7 @@ Pay with crypto via [NOWPayments](https://nowpayments.io/). No card needed, no r
 | Desktop shell | **Tauri 2** (Rust) — transparent always-on-top frameless window, ~17 MB installer |
 | Frontend | **React 19** · TypeScript 5 · Vite 7 |
 | Character render | **three.js** + **@pixiv/three-vrm** (VRM 3D — VRoid Hub compatible) |
-| AI | **OpenRouter** (Claude / GPT / Gemini / Mistral) or native Mistral La Plateforme |
+| AI | **OpenRouter** (Claude / GPT / Gemini / Mistral) · native **OpenAI** · native **Anthropic** · native **Mistral La Plateforme** |
 | Voice | **Web Speech API** (free) or **ElevenLabs Flash v2.5** (Pro) |
 | Active-window | `active-win-pos-rs` crate (Win / macOS / Linux) |
 | Fullscreen detect | `windows-sys` direct Win32 calls on Windows |
