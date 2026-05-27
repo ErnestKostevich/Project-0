@@ -13,9 +13,15 @@ interface UseTTSOpts {
   onAmplitude?: (level: number) => void;
   enabled?: boolean;
   showAllVoices?: boolean;
-  /** When set + non-empty key, ElevenLabs is used instead of Web Speech. */
+  /** When set + non-empty key AND Pro licenseKey is set, ElevenLabs is used. */
   elevenLabsKey?: string;
   elevenLabsVoiceId?: string;
+  /**
+   * Pro license key. ElevenLabs backend (paid voice + real lip-sync) only
+   * activates when this is non-empty. Without a license, even a valid
+   * ElevenLabs key falls back to Web Speech.
+   */
+  licenseKey?: string;
 }
 
 interface UseTTSReturn {
@@ -87,6 +93,7 @@ export function useTTS({
   showAllVoices = false,
   elevenLabsKey = "",
   elevenLabsVoiceId = "",
+  licenseKey = "",
 }: UseTTSOpts = {}): UseTTSReturn {
   const supported =
     typeof window !== "undefined" && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
@@ -98,7 +105,10 @@ export function useTTS({
   const onAmpRef = useRef(onAmplitude);
   onAmpRef.current = onAmplitude;
 
-  const backend: "web" | "eleven" = elevenLabsKey ? "eleven" : "web";
+  // ElevenLabs (Pro) requires BOTH a valid Pro license AND an EL API key.
+  // Without a license we silently fall back to Web Speech regardless of EL key.
+  const hasPro = licenseKey.trim().length > 0;
+  const backend: "web" | "eleven" = hasPro && elevenLabsKey ? "eleven" : "web";
 
   useEffect(() => {
     if (!supported) return;

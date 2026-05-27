@@ -79,7 +79,7 @@ export function SettingsModal({ open, onClose, settings, onChange, tts, onShowPo
           <div className="upgrade-card">
             <div className="upgrade-title">Upgrade to Lumi Pro</div>
             <div className="upgrade-sub">
-              ElevenLabs voices · unlimited chat · all characters · $7/mo
+              ElevenLabs anime voice · real lip-sync · supports indie dev · $7/mo
             </div>
             <button className="upgrade-btn" onClick={handleUpgrade}>
               Pay with crypto →
@@ -236,53 +236,69 @@ export function SettingsModal({ open, onClose, settings, onChange, tts, onShowPo
         ) : null}
 
         {/* ============ ElevenLabs Pro voice ============ */}
-        <div className="settings-section">
-          <span className="settings-section-title">✨ Pro voice — ElevenLabs</span>
-          <label className="settings-row">
-            <span className="settings-label">
-              ElevenLabs API key{" "}
-              <a
-                href="https://elevenlabs.io/app/settings/api-keys"
-                target="_blank"
-                rel="noreferrer"
-                className="settings-link"
-              >
-                (get one)
-              </a>
-            </span>
-            <input
-              className="settings-input"
-              type="password"
-              value={settings.elevenLabsKey}
-              onChange={(e) => onChange({ elevenLabsKey: e.target.value })}
-              placeholder="sk_... (leave empty to use OS voices)"
-              spellCheck={false}
-              autoCorrect="off"
-              autoCapitalize="off"
-            />
-          </label>
-          {settings.elevenLabsKey ? (
-            <label className="settings-row">
-              <span className="settings-label">ElevenLabs voice</span>
-              <input
-                className="settings-input"
-                value={settings.elevenLabsVoiceId}
-                onChange={(e) => onChange({ elevenLabsVoiceId: e.target.value })}
-                placeholder="Voice ID — find in elevenlabs.io VoiceLab"
-                list="eleven-presets"
-              />
-              <datalist id="eleven-presets">
-                {ELEVEN_VOICE_PRESETS.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label}{p.note ? ` — ${p.note}` : ""}
-                  </option>
-                ))}
-              </datalist>
-              <span className="settings-hint">
-                Active backend: {tts?.backend === "eleven" ? "ElevenLabs (Pro)" : "Web Speech"}
-              </span>
-            </label>
-          ) : null}
+        <div className={`settings-section ${settings.licenseKey ? "" : "settings-section-locked"}`}>
+          <span className="settings-section-title">
+            ✨ Pro voice — ElevenLabs
+            {settings.licenseKey ? null : (
+              <span className="settings-lock-badge">🔒 Pro only</span>
+            )}
+          </span>
+          {settings.licenseKey ? (
+            <>
+              <label className="settings-row">
+                <span className="settings-label">
+                  ElevenLabs API key{" "}
+                  <a
+                    href="https://elevenlabs.io/app/settings/api-keys"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="settings-link"
+                  >
+                    (get one)
+                  </a>
+                </span>
+                <input
+                  className="settings-input"
+                  type="password"
+                  value={settings.elevenLabsKey}
+                  onChange={(e) => onChange({ elevenLabsKey: e.target.value })}
+                  placeholder="sk_... (leave empty to use OS voices)"
+                  spellCheck={false}
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                />
+              </label>
+              {settings.elevenLabsKey ? (
+                <label className="settings-row">
+                  <span className="settings-label">ElevenLabs voice</span>
+                  <input
+                    className="settings-input"
+                    value={settings.elevenLabsVoiceId}
+                    onChange={(e) => onChange({ elevenLabsVoiceId: e.target.value })}
+                    placeholder="Voice ID — find in elevenlabs.io VoiceLab"
+                    list="eleven-presets"
+                  />
+                  <datalist id="eleven-presets">
+                    {ELEVEN_VOICE_PRESETS.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.label}{p.note ? ` — ${p.note}` : ""}
+                      </option>
+                    ))}
+                  </datalist>
+                  <span className="settings-hint">
+                    Active backend: {tts?.backend === "eleven" ? "ElevenLabs (Pro)" : "Web Speech"}
+                  </span>
+                </label>
+              ) : null}
+            </>
+          ) : (
+            <div className="settings-locked-hint">
+              Unlock anime voices + real-time amplitude lip-sync.
+              <button type="button" className="settings-locked-cta" onClick={handleUpgrade}>
+                Upgrade to Pro →
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ============ Behaviour ============ */}

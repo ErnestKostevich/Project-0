@@ -947,6 +947,53 @@ input, textarea, select {
   color: var(--pink-600);
   letter-spacing: 0.3px;
   text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.settings-section-locked {
+  background: rgba(255, 246, 248, 0.25);
+  border-style: solid;
+  border-color: rgba(255, 167, 192, 0.3);
+}
+.settings-section-locked .settings-section-title {
+  color: var(--ink-mute);
+}
+.settings-lock-badge {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0.2px;
+  padding: 2px 7px;
+  border-radius: 100px;
+  background: linear-gradient(135deg, var(--pink-300), var(--pink-500));
+  color: #fff;
+}
+.settings-locked-hint {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  padding: 4px 2px 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.settings-locked-cta {
+  align-self: flex-start;
+  background: linear-gradient(135deg, var(--pink-400), var(--pink-600));
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  padding: 7px 13px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(255, 103, 137, 0.3);
+  transition: transform 140ms, box-shadow 140ms;
+}
+.settings-locked-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(255, 103, 137, 0.45);
 }
 
 /* Inline checkbox + label rows */

@@ -56,7 +56,7 @@ export function ChatPanel({ open, onClose, turns, busy, onSend, onClear }: Props
       <div className="chat-list" ref={listRef}>
         {turns.length === 0 ? (
           <div className="chat-empty">
-            Say hi to Hiyori 🌸 — or ask for a Pomodoro.
+            Say hi to Lumi 🌸 — or ask for a Pomodoro.
           </div>
         ) : (
           turns.map((t) => (

@@ -60,9 +60,9 @@ Lumi is **not** a romance app. Not a girlfriend simulator. She's a productivity 
 
 | Tier | Price | What you get |
 |---|---|---|
-| **Free** | $0 forever | Everything above + BYO API key + OS voices |
-| **Pro** | $7 / month | ElevenLabs anime voice with real lip-sync, unlimited chat without API key, future cloud sync, all character DLC |
-| **Character DLC** | $5–15 each | Hand-crafted character packs with custom voice, outfits, idle motions (post-launch) |
+| **Free** | $0 forever | Everything above + BYO OpenRouter / Mistral key + OS voices + app-context reactions |
+| **Pro** | $7 / month | ElevenLabs anime voice with real amplitude-driven lip-sync + every future Pro feature auto-unlocked + supports an indie dev |
+| **Character DLC** | $5–15 each | Hand-crafted character packs with custom voice, outfits, idle motions (Q3 store launch) |
 
 Pay with crypto via [NOWPayments](https://nowpayments.io/). No card needed, no recurring auto-charge — you'll get a renewal email each month.
 

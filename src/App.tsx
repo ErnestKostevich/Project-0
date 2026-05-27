@@ -54,6 +54,7 @@ function App() {
     showAllVoices: settings.showAllVoices,
     elevenLabsKey: settings.elevenLabsKey,
     elevenLabsVoiceId: settings.elevenLabsVoiceId,
+    licenseKey: settings.licenseKey,
   });
   const activeWin = useActiveWindow(8000);
   const distractionNudgedRef = useRef<number>(0);
