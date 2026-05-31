@@ -130,9 +130,9 @@ jobs:
             - **"Test key" button**, **friendly errors + Retry**, full-body character with calmer animations, real Pro license verification + recover-by-email.
 
             ### Downloads
-            - **Windows**: `Lumi_0.0.4_x64-setup.exe` (NSIS installer) or `Lumi_0.0.4_x64_en-US.msi`
-            - **macOS**: `Lumi_0.0.4_aarch64.dmg` (Apple Silicon — M1/M2/M3)
-            - **Linux**: `Lumi_0.0.4_amd64.AppImage` (portable) or `Lumi_0.0.4_amd64.deb` (Debian/Ubuntu)
+            - **Windows**: `Lumi_0.0.3_x64-setup.exe` (NSIS installer) or `Lumi_0.0.3_x64_en-US.msi`
+            - **macOS**: `Lumi_0.0.3_aarch64.dmg` (Apple Silicon — M1/M2/M3)
+            - **Linux**: `Lumi_0.0.3_amd64.AppImage` (portable) or `Lumi_0.0.3_amd64.deb` (Debian/Ubuntu)
 
             ### First-run warnings (no code-signing on alpha)
             - **Windows**: SmartScreen will say "unrecognized publisher" → click **More info** → **Run anyway**
