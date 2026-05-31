@@ -176,6 +176,12 @@ export function OnboardingModal({ open, onClose, settings, onChange }: Props) {
           />
         </label>
 
+        <p className="onb-privacy">
+          🔒 As we chat, I'll quietly remember the important things — your projects, goals,
+          wins — so I'm actually helpful over time. It stays <strong>only on this device</strong>,
+          and you can read, edit, or switch it off anytime in ⚙ Settings.
+        </p>
+
         <button className="onb-cta" onClick={finish}>
           {currentKey.trim() ? "Let's go! →" : "Skip for now — I'll still keep you company 🌸"}
         </button>

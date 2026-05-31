@@ -1383,6 +1383,17 @@ input, textarea, select {
   margin-top: 2px;
 }
 .onb-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(255, 103, 137, 0.55); }
+.onb-privacy {
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--ink-mute);
+  background: rgba(255, 246, 248, 0.6);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 11px;
+  margin: 0;
+}
+.onb-privacy strong { color: var(--ink-soft); }
 
 /* ============ Memory list (Settings) ============ */
 .memory-list {

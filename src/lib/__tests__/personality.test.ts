@@ -54,4 +54,19 @@ describe("buildSystemPrompt", () => {
     expect(p).not.toMatch(/Pomodoro FOCUS/);
     expect(p).not.toMatch(/Pomodoro BREAK/);
   });
+
+  it("injects the long-term memory block when present", () => {
+    const memory = "- (project) Is building a Tauri app called Lumi\n- (deadline) Ships Friday";
+    const p = buildSystemPrompt({ userName: "Ernest", memory });
+    expect(p).toMatch(/WHAT YOU REMEMBER ABOUT Ernest/);
+    expect(p).toMatch(/building a Tauri app called Lumi/);
+    expect(p).toMatch(/Ships Friday/);
+    // Instructed to reference naturally, not recite
+    expect(p).toMatch(/reference naturally/i);
+  });
+
+  it("omits the memory block when memory is empty", () => {
+    const p = buildSystemPrompt({ userName: "Ernest", memory: "" });
+    expect(p).not.toMatch(/WHAT YOU REMEMBER/);
+  });
 });
